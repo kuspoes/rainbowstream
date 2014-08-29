@@ -126,7 +126,7 @@ def init(args):
     c['original_name'] = g['original_name'] = screen_name[1:]
     g['full_name'] = name
     g['decorated_name'] = lambda x: color_func(
-        c['DECORATED_NAME'])('[' + x + ']: ')
+        c['DECORATED_NAME'])('' + x + ' : ')
     # Theme init
     files = os.listdir(os.path.dirname(__file__) + '/colorset')
     themes = [f.split('.')[0] for f in files if f.split('.')[-1] == 'json']
