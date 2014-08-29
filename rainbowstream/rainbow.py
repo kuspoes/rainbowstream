@@ -1725,7 +1725,10 @@ def listen():
             c['lock'] = False
         except EOFError:
             printNicely('')
-        except Exception:
+        except Exception as e:
+            print(e)
+            import trackback
+            print(trackback.format_exc())
             printNicely(red('OMG something is wrong with Twitter right now.'))
 
 
