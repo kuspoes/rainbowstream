@@ -15,6 +15,7 @@ from .c_image import *
 from .colors import *
 from .config import *
 from .py3patch import *
+from .emoji import *
 
 # Draw global variables
 dg = {}
@@ -316,6 +317,7 @@ def draw(t, keyword=None, humanize=True, noti=False, fil=[], ig=[]):
         delimiter = color_func(c['TWEET']['favorite_count'])(
             str(favorite_count).join(word.split('#fa_count')))
         formater = delimiter.join(formater.split(word))
+        formater = emojize(formater)
     except:
         pass
 
@@ -460,6 +462,7 @@ def print_right_message(m):
         word = [wo for wo in formater.split() if '#id' in wo][0]
         delimiter = color_func(c['MESSAGE']['id'])(id.join(word.split('#id')))
         formater = delimiter.join(formater.split(word))
+        formater = emojize(formater)
     except Exception:
         printNicely(red('Wrong format in config.'))
         return
@@ -524,6 +527,7 @@ def print_left_message(m):
         word = [wo for wo in formater.split() if '#id' in wo][0]
         delimiter = color_func(c['MESSAGE']['id'])(id.join(word.split('#id')))
         formater = delimiter.join(formater.split(word))
+        formater = emojize(formater)
     except Exception:
         printNicely(red('Wrong format in config.'))
         return
@@ -589,6 +593,7 @@ def print_message(m):
         word = [wo for wo in formater.split() if '#id' in wo][0]
         delimiter = color_func(c['MESSAGE']['id'])(id.join(word.split('#id')))
         formater = delimiter.join(formater.split(word))
+        formater = emojize(formater)
     except:
         printNicely(red('Wrong format in config.'))
         return
@@ -618,6 +623,7 @@ def notify_retweet(t):
     meta = source_user.join(meta.split('#source_user'))
     meta = notify.join(meta.split('#notify'))
     meta = clock.join(meta.split('#clock'))
+    meta = emojize(meta)
     # Output
     printNicely('')
     printNicely(meta)
@@ -650,6 +656,7 @@ def notify_favorite(e):
     meta = source_user.join(meta.split('#source_user'))
     meta = notify.join(meta.split('#notify'))
     meta = clock.join(meta.split('#clock'))
+    meta = emojize(meta)
     # Output
     printNicely('')
     printNicely(meta)
@@ -682,6 +689,7 @@ def notify_unfavorite(e):
     meta = source_user.join(meta.split('#source_user'))
     meta = notify.join(meta.split('#notify'))
     meta = clock.join(meta.split('#clock'))
+    meta = emojize(meta)
     # Output
     printNicely('')
     printNicely(meta)
@@ -713,6 +721,7 @@ def notify_follow(e):
     meta = source_user.join(meta.split('#source_user'))
     meta = notify.join(meta.split('#notify'))
     meta = clock.join(meta.split('#clock'))
+    meta = emojize(meta)
     # Output
     printNicely('')
     printNicely(meta)
@@ -744,6 +753,7 @@ def notify_list_member_added(e):
     meta = source_user.join(meta.split('#source_user'))
     meta = notify.join(meta.split('#notify'))
     meta = clock.join(meta.split('#clock'))
+    meta = emojize(meta)
     # Output
     printNicely('')
     printNicely(meta)
@@ -776,6 +786,7 @@ def notify_list_member_removed(e):
     meta = source_user.join(meta.split('#source_user'))
     meta = notify.join(meta.split('#notify'))
     meta = clock.join(meta.split('#clock'))
+    meta = emojize(meta)
     # Output
     printNicely('')
     printNicely(meta)
@@ -808,6 +819,7 @@ def notify_list_user_subscribed(e):
     meta = source_user.join(meta.split('#source_user'))
     meta = notify.join(meta.split('#notify'))
     meta = clock.join(meta.split('#clock'))
+    meta = emojize(meta)
     # Output
     printNicely('')
     printNicely(meta)
@@ -840,17 +852,11 @@ def notify_list_user_unsubscribed(e):
     meta = source_user.join(meta.split('#source_user'))
     meta = notify.join(meta.split('#notify'))
     meta = clock.join(meta.split('#clock'))
+    meta = emojize(meta)
     # Output
     printNicely('')
     printNicely(meta)
     print_list(target_object, noti=True)
-
-
-def nothing(e):
-    """
-    Do nothing for other event
-    """
-    return
 
 
 def print_event(e):
@@ -867,7 +873,7 @@ def print_event(e):
         'list_user_subscribed': notify_list_user_subscribed,
         'list_user_unsubscribed': notify_list_user_unsubscribed,
     }
-    event_dict.get(e['event'],nothing)(e)
+    event_dict.get(e['event'], lambda *args: None)(e)
 
 
 def show_profile(u):
@@ -1055,6 +1061,7 @@ def format_quote(tweet):
         formater = screen_name.join(formater.split('#owner'))
         formater = text.join(formater.split('#tweet'))
         formater = u2str(formater)
+        formater = emojize(formater)
     except:
         pass
     # Highlight like a tweet
