@@ -8,6 +8,7 @@ import threading
 import requests
 import webbrowser
 import traceback
+import pkg_resources
 
 from twitter.stream import TwitterStream, Timeout, HeartbeatTimeout, Hangup
 from twitter.api import *
@@ -52,11 +53,6 @@ def parse_arguments():
         '-ig',
         '--ignore',
         help='Ignore specific screen_name.')
-    parser.add_argument(
-        '-dg',
-        '--debug',
-        action='store_true',
-        help='Run in debug mode.')
     parser.add_argument(
         '-iot',
         '--image-on-term',
@@ -123,6 +119,27 @@ def debug_option():
         g['traceback'].append(traceback.format_exc())
 
 
+def upgrade_center():
+    """
+    Check latest and notify to upgrade
+    """
+    try:
+        current = pkg_resources.get_distribution("rainbowstream").version
+        url = 'https://raw.githubusercontent.com/DTVD/rainbowstream/master/setup.py'
+        readme = requests.get(url).content
+        latest = readme.split("version = \'")[1].split("\'")[0]
+        if current != latest:
+            notice = light_magenta('RainbowStream latest version is ')
+            notice += light_green(latest)
+            notice += light_magenta(' while your current version is ')
+            notice += light_yellow(current) + '\n'
+            notice += light_magenta('You should upgrade with ')
+            notice += light_green('pip install -U rainbowstream')
+            printNicely(notice)
+    except:
+        pass
+
+
 def init(args):
     """
     Init function
@@ -130,6 +147,8 @@ def init(args):
     # Handle Ctrl C
     ctrl_c_handler = lambda signum, frame: quit()
     signal.signal(signal.SIGINT, ctrl_c_handler)
+    # Upgrade notify
+    upgrade_center()
     # Get name
     t = Twitter(auth=authen())
     credential = t.account.verify_credentials()
@@ -149,14 +168,12 @@ def init(args):
     g['themes'] = themes
     g['pause'] = False
     g['message_threads'] = {}
-    # Events
-    g['events'] = []
     # Startup cmd
     g['cmd'] = ''
-    # Debug option
-    g['debug'] = args.debug
+    # Debug option default = True
+    g['debug'] = True
     g['traceback'] = []
-    # Retweet of mine events
+    # Events
     c['events'] = []
     # Semaphore init
     c['lock'] = False
@@ -223,9 +240,8 @@ def notification():
     """
     Show notifications
     """
-    g['events'] = g['events'] + c['events']
-    if g['events']:
-        for e in g['events']:
+    if c['events']:
+        for e in c['events']:
             print_event(e)
         printNicely('')
     else:
@@ -825,10 +841,10 @@ def report():
 
 def get_slug():
     """
-    Get Slug Decorator
+    Get slug
     """
     # Get list name
-    list_name = raw_input(light_magenta('Give me the list\'s name: '))
+    list_name = raw_input(light_magenta('Give me the list\'s name ("@owner/list_name"): '))
     # Get list name and owner
     try:
         owner, slug = list_name.split('/')
@@ -1150,13 +1166,47 @@ def switch():
                     g['original_name']))
             th.daemon = True
             th.start()
+        # Stream base on list
+        elif target == 'list':
+            owner, slug = get_slug()
+            # Force python 2 not redraw readline buffer
+            g['cmd'] = '/'.join([owner,slug])
+            printNicely(light_yellow('getting list members ...'))
+            # Get members
+            t = Twitter(auth=authen())
+            members = []
+            next_cursor = -1
+            while next_cursor != 0:
+                m = t.lists.members(
+                    slug=slug,
+                    owner_screen_name=owner,
+                    cursor=next_cursor,
+                    include_entities=False)
+                for u in m['users']:
+                    members.append('@' + u['screen_name'])
+                next_cursor = m['next_cursor']
+            printNicely(light_yellow('... done.'))
+            # Build thread filter array
+            args.filter = members
+            # Kill old thread
+            g['stream_stop'] = True
+            # Start new thread
+            th = threading.Thread(
+                target=stream,
+                args=(
+                    c['USER_DOMAIN'],
+                    args,
+                    slug))
+            th.daemon = True
+            th.start()
         printNicely('')
         if args.filter:
-            printNicely(cyan('Only: ' + str(args.filter)))
+            printNicely(cyan('Include: ' + str(len(args.filter)) + ' people.'))
         if args.ignore:
-            printNicely(red('Ignore: ' + str(args.ignore)))
+            printNicely(red('Ignore: ' + str(len(args.ignore)) + ' people.'))
         printNicely('')
-    except:
+    except Exception:
+        debug_option()
         printNicely(red('Sorry I can\'t understand.'))
 
 
@@ -1439,6 +1489,8 @@ def help_stream():
         ' filter will decide nicks will be EXCLUDE.\n'
     usage += s * 2 + light_green('switch mine -d') + \
         ' will use the config\'s ONLY_LIST and IGNORE_LIST.\n'
+    usage += s * 2 + light_green('switch list') + \
+        ' will switch to a Twitter list\'s stream. You will be asked for list name\n'
     printNicely(usage)
 
 
@@ -1686,7 +1738,7 @@ def listen():
     d = dict(zip(
         cmdset,
         [
-            ['public', 'mine'],  # switch
+            ['public', 'mine', 'list'],  # switch
             [],  # trend
             [],  # home
             [],  # notification
@@ -1889,7 +1941,7 @@ def stream(domain, args, name='Rainbow Stream'):
                     time.sleep(0.5)
                 print_message(tweet['direct_message'])
             elif tweet.get('event'):
-                g['events'].append(tweet)
+                c['events'].append(tweet)
                 print_event(tweet)
     except TwitterHTTPError:
         printNicely('')
